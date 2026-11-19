@@ -1,0 +1,1798 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catálogo Interactivo de Turismo Residencial · Valle de Bravo</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/fill/style.css">
+
+  <!-- Leaflet CSS para mapa interactivo con calles reales -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+
+  <style>
+    :root {
+      color-scheme: light;
+      --background: #f9f3eb;
+      --surface-container-low: #f3e9dc;
+      --surface-container: #ede0d0;
+      --surface-container-high: #e4d4c0;
+      --surface-paper: #fdfaf5;
+
+      --on-surface: #261b15;
+      --on-surface-variant: #57483f;
+      --outline: #9e8a78;
+      --outline-variant: #dfd0be;
+
+      --primary: #b84a24;
+      --on-primary: #ffffff;
+      --primary-container: #f7ebe0;
+      --on-primary-container: #7d2e12;
+      --primary-border-soft: #c98a6b;
+      --secondary: #8f6524;
+      --tertiary: #1d6356;
+      --tertiary-container: #e1efe9;
+      --on-tertiary-container: #13473d;
+      --tertiary-border-soft: #b5d6c9;
+
+      --font-headline: 'Cormorant Garamond', Georgia, serif;
+      --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+
+      --display-size: clamp(1.65rem, 1.3rem + 1.2vw, 2.35rem);
+      --headline-size: clamp(1.2rem, 1.05rem + 0.45vw, 1.5rem);
+      --body-size: 0.9375rem;
+
+      --rounded: 0.375rem;
+      --rounded-lg: 0.75rem;
+      --rounded-arch: 26px 26px 6px 6px;
+      --rounded-full: 9999px;
+
+      --space-xs: 0.25rem;
+      --space-sm: 0.5rem;
+      --space-md: 1rem;
+      --space-lg: 1.5rem;
+      --space-xl: 2.25rem;
+
+      --soft-shadow: 0 4px 18px rgb(38 27 21 / 0.05);
+      --soft-shadow-raised: 0 10px 28px rgb(38 27 21 / 0.12);
+      --pdf-shadow: 0 6px 20px rgb(38 27 21 / 0.08), 0 1px 4px rgb(38 27 21 / 0.06);
+      --warm-hairline: 1px solid var(--outline-variant);
+      --brass-gradient: linear-gradient(90deg, #d8c3b0, #b5893e, #d8c3b0);
+
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --dur-micro: 120ms;
+      --dur-short: 220ms;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      overflow-x: clip;
+      margin: 0;
+      padding: 0;
+      background-color: var(--background);
+      color: var(--on-surface);
+      font-family: var(--font-body);
+      font-size: var(--body-size);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input, select { font-family: inherit; }
+
+    /* Contenedor ampliado para dar mucho más espacio al mapa */
+    .app-shell {
+      max-width: 1780px;
+      margin: 0 auto;
+      padding: var(--space-md) var(--space-lg) var(--space-xl);
+      display: grid;
+      gap: var(--space-md);
+    }
+
+    .topbar {
+      display: block;
+      padding-bottom: var(--space-md);
+      border-bottom: var(--warm-hairline);
+    }
+
+    .brand-kicker {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--secondary);
+      margin-bottom: var(--space-xs);
+    }
+
+    .title {
+      font-family: var(--font-headline);
+      font-weight: 600;
+      font-size: var(--display-size);
+      line-height: 1.05;
+      margin: 0;
+    }
+    .title em { font-style: italic; color: var(--primary); }
+
+    .subtitle {
+      margin: var(--space-xs) 0 0;
+      color: var(--on-surface-variant);
+      max-width: 68ch;
+      font-size: 0.9rem;
+    }
+
+    .kpi-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--space-sm);
+    }
+
+    .arch-card {
+      background: var(--surface-container-low);
+      border: 1px solid var(--outline-variant);
+      border-radius: var(--rounded-arch);
+      padding: 12px 8px 10px;
+      text-align: center;
+      box-shadow: var(--soft-shadow);
+    }
+    .arch-card.is-featured {
+      background: var(--primary-container);
+      border-color: var(--primary-border-soft);
+    }
+    .arch-label {
+      display: block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--on-surface-variant);
+    }
+    .arch-value {
+      display: block;
+      font-family: var(--font-headline);
+      font-weight: 600;
+      font-size: clamp(1.3rem, 1.05rem + 0.7vw, 1.75rem);
+      line-height: 1.15;
+      margin-top: 2px;
+    }
+    .arch-note {
+      display: block;
+      font-size: 0.71rem;
+      font-weight: 600;
+      color: var(--tertiary);
+      margin-top: 2px;
+    }
+
+    /* Barra de zonas */
+    .control-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-sm);
+      background: var(--surface-container-low);
+      border: var(--warm-hairline);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-sm) var(--space-md);
+    }
+
+    .zone-pills { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+    .zone-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 36px;
+      padding: 6px 12px;
+      border-radius: var(--rounded-full);
+      border: 1px solid var(--outline-variant);
+      background: var(--surface-paper);
+      color: var(--on-surface);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--dur-micro) var(--ease-out);
+    }
+    .zone-pill:hover { background: var(--surface-container); transform: translateY(-1px); }
+    .zone-pill.is-active {
+      background: var(--primary);
+      color: var(--on-primary);
+      border-color: var(--primary);
+      box-shadow: var(--soft-shadow);
+    }
+    .zone-swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: var(--rounded-full);
+      border: 1px solid rgba(38, 27, 21, 0.25);
+    }
+    .zone-pill.is-active .zone-swatch { border-color: var(--on-primary); }
+
+    .interaction-hint {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+      color: var(--on-surface-variant);
+      font-weight: 500;
+    }
+    .lock-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 36px;
+      padding: 5px 12px;
+      border-radius: var(--rounded-full);
+      border: 1px solid var(--tertiary-border-soft);
+      background: var(--tertiary-container);
+      color: var(--on-tertiary-container);
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .lock-toggle:hover { background: var(--surface-container-high); }
+
+    /* GRID PRINCIPAL: Columna central (Mapa) mucho más ancha (1.95fr) */
+    .workspace-grid {
+      display: grid;
+      grid-template-columns: minmax(280px, 0.88fr) minmax(580px, 1.95fr) minmax(295px, 0.92fr);
+      gap: var(--space-md);
+      align-items: start;
+      transition: all 0.25s ease;
+    }
+    .workspace-grid > * { min-width: 0; }
+
+    /* Modo mapa expandido (ocupa todo el ancho arriba y deja los paneles abajo) */
+    .workspace-grid.is-map-expanded {
+      grid-template-columns: 1fr 1fr;
+    }
+    .workspace-grid.is-map-expanded .map-panel {
+      grid-column: 1 / -1;
+      order: -1;
+    }
+    .workspace-grid.is-map-expanded .map-viewport {
+      height: 80vh;
+      min-height: 680px;
+    }
+
+    .panel {
+      background: var(--surface-container-low);
+      border: var(--warm-hairline);
+      border-radius: var(--rounded-lg);
+      box-shadow: var(--soft-shadow);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 14px 16px;
+      background: var(--surface-container);
+      border-bottom: var(--warm-hairline);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .panel-kicker {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-sm);
+      font-size: 0.6875rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--secondary);
+    }
+
+    .panel-title {
+      font-family: var(--font-headline);
+      font-weight: 600;
+      font-size: var(--headline-size);
+      line-height: 1.15;
+      margin: 0;
+    }
+
+    .panel-subtitle { font-size: 0.8rem; color: var(--on-surface-variant); margin: 0; }
+
+    .panel-scroll {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+      max-height: 760px;
+      overflow-y: auto;
+    }
+
+    /* Panel Izquierdo */
+    .zone-meta-bar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .meta-chip {
+      background: var(--surface-paper);
+      border: var(--warm-hairline);
+      border-radius: var(--rounded);
+      padding: 8px;
+    }
+    .meta-chip-label {
+      display: block;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--secondary);
+    }
+    .meta-chip-value { display: block; font-weight: 600; font-size: 0.84rem; margin-top: 2px; }
+
+    .category-filter-row { display: flex; flex-wrap: wrap; gap: 5px; }
+    .cat-btn {
+      min-height: 30px;
+      padding: 4px 9px;
+      border-radius: var(--rounded-full);
+      border: 1px solid var(--outline-variant);
+      background: var(--surface-paper);
+      color: var(--on-surface-variant);
+      font-size: 0.73rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .cat-btn.is-active { background: var(--tertiary); color: #fff; border-color: var(--tertiary); }
+
+    .attraction-group { display: flex; flex-direction: column; gap: 8px; }
+    .group-heading {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.73rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--primary);
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--outline-variant);
+      margin: 0;
+    }
+
+    .poi-card {
+      background: var(--surface-paper);
+      border: 1px solid var(--outline-variant);
+      border-radius: var(--rounded);
+      padding: 10px 12px;
+      cursor: pointer;
+      text-align: left;
+      width: 100%;
+      transition: all var(--dur-micro) var(--ease-out);
+    }
+    .poi-card:hover, .poi-card.is-highlighted {
+      background: var(--primary-container);
+      border-color: var(--primary-border-soft);
+      box-shadow: var(--soft-shadow);
+    }
+    .poi-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; }
+    .poi-title { font-weight: 700; font-size: 0.86rem; margin: 0; }
+    .poi-badge {
+      flex-shrink: 0;
+      background: var(--tertiary-container);
+      color: var(--on-tertiary-container);
+      border: 1px solid var(--tertiary-border-soft);
+      padding: 2px 7px;
+      border-radius: var(--rounded-full);
+      font-size: 0.66rem;
+      font-weight: 700;
+    }
+    .poi-desc { margin: 4px 0 0; font-size: 0.79rem; color: var(--on-surface-variant); line-height: 1.4; }
+    .poi-meta {
+      margin-top: 6px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 0.7rem;
+      color: var(--secondary);
+      font-weight: 600;
+    }
+
+    .gastro-box {
+      background: var(--surface-paper);
+      border: 1px solid var(--outline-variant);
+      border-radius: var(--rounded);
+      padding: 10px 12px;
+    }
+    .gastro-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+    .gastro-tag {
+      background: var(--surface-container-low);
+      border: 1px solid var(--outline-variant);
+      border-radius: var(--rounded-full);
+      padding: 3px 9px;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+    .gastro-tag.is-service {
+      background: var(--tertiary-container);
+      border-color: var(--tertiary-border-soft);
+      color: var(--on-tertiary-container);
+    }
+
+    /* PANEL CENTRAL: Mapa Interactivo con Calles Reales (Leaflet) */
+    .map-panel {
+      background: var(--surface-container-low);
+      border: var(--warm-hairline);
+      border-radius: var(--rounded-lg);
+      box-shadow: var(--soft-shadow-raised);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .map-toolbar {
+      padding: 10px 14px;
+      background: var(--surface-container);
+      border-bottom: var(--warm-hairline);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .map-layers { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .layer-toggle {
+      min-height: 32px;
+      padding: 4px 10px;
+      border-radius: var(--rounded-full);
+      border: 1px solid var(--outline-variant);
+      background: var(--surface-paper);
+      color: var(--on-surface-variant);
+      font-size: 0.74rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .layer-toggle.is-on {
+      background: var(--primary-container);
+      border-color: var(--primary-border-soft);
+      color: var(--on-primary-container);
+    }
+
+    .map-viewport {
+      position: relative;
+      width: 100%;
+      height: 750px; /* Altura ampliada para mayor visibilidad */
+      min-height: 640px;
+      background: #e5e3df;
+    }
+
+    #leaflet-map {
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* Etiquetas de zonas sobre el mapa estilo Google Maps */
+    .zone-label-div {
+      background: rgba(253, 250, 245, 0.92);
+      border: 1.5px solid var(--outline-variant);
+      border-radius: 999px;
+      padding: 2px 9px;
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--on-surface);
+      white-space: nowrap;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.16);
+      text-align: center;
+      pointer-events: none;
+    }
+
+    /* Pines personalizados estilo Google Maps */
+    .gmaps-pin {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      border: 2px solid #ffffff;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.32);
+      transition: transform 0.15s ease;
+    }
+    .gmaps-pin i {
+      transform: rotate(45deg);
+      color: #ffffff;
+      font-size: 13px;
+    }
+    .gmaps-pin.is-active {
+      transform: rotate(-45deg) scale(1.28);
+      z-index: 999 !important;
+    }
+
+    .prop-pin {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: #261b15;
+      color: #fdfaf5;
+      border: 1.5px solid #ffffff;
+      font-size: 10px;
+      font-weight: 700;
+      white-space: nowrap;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+    }
+    .prop-pin.is-selected {
+      background: #b84a24;
+      transform: scale(1.15);
+    }
+
+    /* HUD flotante superior sobre el mapa */
+    .map-hud-top {
+      position: absolute;
+      top: 12px;
+      left: 54px;
+      right: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      pointer-events: none;
+      gap: 8px;
+      z-index: 500;
+    }
+
+    .map-tooltip-card {
+      pointer-events: auto;
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid var(--outline-variant);
+      border-radius: var(--rounded-lg);
+      padding: 9px 13px;
+      box-shadow: var(--soft-shadow-raised);
+      max-width: 390px;
+    }
+    .map-tooltip-title {
+      font-family: var(--font-headline);
+      font-weight: 700;
+      font-size: 1.08rem;
+      color: var(--on-surface);
+      margin: 0;
+    }
+    .map-tooltip-desc {
+      font-size: 0.77rem;
+      color: var(--on-surface-variant);
+      margin: 2px 0 0;
+      line-height: 1.38;
+    }
+
+    .map-style-switcher {
+      pointer-events: auto;
+      display: inline-flex;
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid var(--outline-variant);
+      border-radius: var(--rounded);
+      overflow: hidden;
+      box-shadow: var(--soft-shadow);
+    }
+    .map-style-btn {
+      border: none;
+      background: transparent;
+      padding: 6px 11px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--on-surface-variant);
+      cursor: pointer;
+    }
+    .map-style-btn.is-active {
+      background: var(--primary);
+      color: #ffffff;
+    }
+
+    .map-hud-bottom {
+      position: absolute;
+      bottom: 24px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      pointer-events: none;
+      z-index: 500;
+    }
+
+    .map-legend {
+      pointer-events: auto;
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid var(--outline-variant);
+      border-radius: var(--rounded);
+      padding: 6px 11px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--on-surface);
+      box-shadow: var(--soft-shadow);
+    }
+    .legend-item { display: inline-flex; align-items: center; gap: 5px; }
+    .legend-dot { width: 9px; height: 9px; border-radius: 9999px; display: inline-block; }
+
+    .map-footer-note {
+      padding: 8px 14px;
+      background: var(--surface-container);
+      border-top: var(--warm-hairline);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: var(--space-sm);
+      font-size: 0.74rem;
+      color: var(--on-surface-variant);
+    }
+
+    /* Panel Derecho: Propiedades */
+    .prop-filter-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: space-between; }
+    .op-tabs { display: flex; gap: 4px; }
+    .op-tab {
+      min-height: 30px;
+      padding: 4px 9px;
+      border-radius: var(--rounded-full);
+      border: 1px solid var(--outline-variant);
+      background: var(--surface-paper);
+      color: var(--on-surface-variant);
+      font-size: 0.73rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .op-tab.is-active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+    .pdf-card {
+      background: var(--surface-paper);
+      border: 1px solid var(--outline-variant);
+      border-radius: var(--rounded);
+      box-shadow: var(--pdf-shadow);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: all var(--dur-short) var(--ease-out);
+    }
+    .pdf-card:hover, .pdf-card.is-selected {
+      transform: translateY(-2px);
+      box-shadow: var(--soft-shadow-raised);
+      border-color: var(--primary-border-soft);
+    }
+    .pdf-masthead {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 11px;
+      background: var(--surface-container);
+      border-bottom: 1px solid var(--outline-variant);
+      font-size: 0.67rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--secondary);
+    }
+    .pdf-doc-tag {
+      background: var(--surface-paper);
+      border: 1px solid var(--outline-variant);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--on-surface);
+    }
+    .pdf-photo-frame {
+      position: relative;
+      height: 132px;
+      overflow: hidden;
+      border-bottom: 1px solid var(--outline-variant);
+    }
+    .pdf-photo-svg { width: 100%; height: 100%; display: block; }
+    .pdf-op-pill {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      padding: 3px 9px;
+      border-radius: var(--rounded-full);
+      font-size: 0.66rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #fff;
+    }
+    .pdf-op-pill.is-venta { background: var(--primary); }
+    .pdf-op-pill.is-renta { background: var(--tertiary); }
+    .pdf-price-badge {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      background: rgba(38, 27, 21, 0.9);
+      color: #fff;
+      padding: 3px 9px;
+      border-radius: var(--rounded);
+      font-family: var(--font-headline);
+      font-weight: 700;
+      font-size: 1rem;
+    }
+    .pdf-body { padding: 11px 12px; display: flex; flex-direction: column; gap: 7px; }
+    .pdf-title { font-family: var(--font-headline); font-weight: 700; font-size: 1.1rem; line-height: 1.15; margin: 0; }
+    .pdf-address { display: flex; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--on-surface-variant); margin: 0; }
+    .pdf-specs-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 4px;
+      padding: 6px 0;
+      border-top: 1px solid var(--outline-variant);
+      border-bottom: 1px solid var(--outline-variant);
+      text-align: center;
+    }
+    .spec-val { font-weight: 700; font-size: 0.78rem; display: block; }
+    .spec-lbl { font-size: 0.62rem; text-transform: uppercase; color: var(--secondary); display: block; }
+    .pdf-proximity { font-size: 0.75rem; color: var(--on-surface-variant); line-height: 1.38; margin: 0; }
+    .pdf-proximity strong { color: var(--tertiary); }
+    .pdf-footer { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding-top: 2px; }
+    .pdf-advisor { font-size: 0.7rem; color: var(--secondary); font-weight: 600; }
+    .pdf-btn {
+      min-height: 30px;
+      padding: 4px 10px;
+      border-radius: var(--rounded-full);
+      border: 1px solid var(--primary);
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+      font-size: 0.72rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .pdf-btn:hover { background: var(--primary); color: #fff; }
+
+    /* Drawer PDF A4 */
+    .pdf-sheet-drawer {
+      background: var(--surface-paper);
+      border: 2px solid var(--primary-border-soft);
+      border-radius: var(--rounded-lg);
+      box-shadow: var(--soft-shadow-raised);
+      padding: var(--space-lg);
+      display: none;
+      flex-direction: column;
+      gap: var(--space-md);
+    }
+    .pdf-sheet-drawer.is-open { display: flex; }
+    .drawer-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: var(--space-md);
+      border-bottom: 2px solid var(--outline-variant);
+      padding-bottom: var(--space-md);
+    }
+    .drawer-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-lg); }
+    .drawer-box {
+      background: var(--surface-container-low);
+      border: var(--warm-hairline);
+      border-radius: var(--rounded);
+      padding: var(--space-md);
+    }
+    .drawer-box h4 {
+      margin: 0 0 var(--space-sm);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--primary);
+    }
+
+    @media (max-width: 1280px) {
+      .workspace-grid { grid-template-columns: 1fr 1fr; }
+      .map-panel { grid-column: 1 / -1; order: -1; }
+      .map-viewport { height: 620px; min-height: 520px; }
+      .drawer-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 780px) {
+      .topbar, .workspace-grid { grid-template-columns: 1fr; }
+      .panel-scroll { max-height: none; }
+      .map-viewport { height: 480px; min-height: 440px; }
+    }
+
+    /* Efecto mancha de acuarela suave sin bordes duros en los polígonos */
+    .watercolor-blob {
+      filter: blur(4px);
+      transition: fill-opacity 0.25s ease;
+    }
+    .leaflet-overlay-pane svg {
+      overflow: visible;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="brand-kicker">
+          <i class="ph ph-compass" aria-hidden="true"></i>
+          <span>NovaTerra Bienes Raíces · Catálogo de Turismo Residencial 2026</span>
+        </div>
+        <h1 class="title">Atlas Interactivo de <em>Valle de Bravo</em></h1>
+        <p class="subtitle">
+          Explore las siete microzonas de turismo residencial sobre la traza vial real de Valle de Bravo y Avándaro. Seleccione una zona o atracción para consultar su oferta cultural, natural y gastronómica junto con las fichas inmobiliarias A4.
+        </p>
+      </div>
+    </header>
+
+    <!-- Selector rápido de zonas -->
+    <nav class="control-bar" aria-label="Selector rápido de zonas territoriales">
+      <div class="zone-pills" id="zone-pills"></div>
+      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <span class="interaction-hint" id="interaction-status">
+          <i class="ph ph-map-trifold" aria-hidden="true"></i>
+          <span>Mapa vial interactivo sincronizado</span>
+        </span>
+        <button type="button" class="lock-toggle" id="btn-expand-map" onclick="toggleExpandMap()">
+          <i class="ph ph-arrows-out" aria-hidden="true"></i>
+          <span id="expand-map-label">Ampliar mapa</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Espacio Principal de 3 Paneles -->
+    <main class="workspace-grid" id="workspace-grid">
+      <!-- PANEL IZQUIERDO -->
+      <section class="panel" aria-labelledby="left-panel-title">
+        <div class="panel-header">
+          <div class="panel-kicker">
+            <span id="left-zone-kicker">Guía Turística y Estilo de Vida</span>
+            <span id="left-zone-badge" style="color: var(--tertiary);">7 Zonas</span>
+          </div>
+          <h2 class="panel-title" id="left-panel-title">Avándaro</h2>
+          <p class="panel-subtitle" id="left-zone-tagline">Naturaleza boscosa, deportes al aire libre, bienestar y alta gastronomía.</p>
+        </div>
+        <div class="panel-scroll" id="left-panel-body"></div>
+      </section>
+
+      <!-- PANEL CENTRAL: MAPA REAL CON CALLES ESTILO GOOGLE MAPS -->
+      <section class="map-panel" aria-label="Mapa vial interactivo de Valle de Bravo">
+        <div class="map-toolbar">
+          <div class="map-layers">
+            <button type="button" class="layer-toggle is-on" id="layer-poi-btn" onclick="toggleLayer('poi')">
+              <i class="ph ph-map-pin" aria-hidden="true"></i>
+              <span>Atracciones y sitios</span>
+            </button>
+            <button type="button" class="layer-toggle is-on" id="layer-radius-btn" onclick="toggleLayer('radius')">
+              <i class="ph ph-circle-dashed" aria-hidden="true"></i>
+              <span>Radio de proximidad (1.5 km)</span>
+            </button>
+            <button type="button" class="layer-toggle" onclick="fitAllZones()" title="Ver todas las zonas">
+              <i class="ph ph-corners-out" aria-hidden="true"></i>
+              <span>Vista general</span>
+            </button>
+          </div>
+
+          <div class="map-style-switcher" role="group" aria-label="Estilo de mapa">
+            <button type="button" class="map-style-btn is-active" id="style-streets" onclick="setMapBasemap('streets')">Mapa (Calles)</button>
+            <button type="button" class="map-style-btn" id="style-osm" onclick="setMapBasemap('osm')">Detalle Vial</button>
+            <button type="button" class="map-style-btn" id="style-sat" onclick="setMapBasemap('satellite')">Satélite</button>
+          </div>
+        </div>
+
+        <div class="map-viewport" id="map-viewport">
+          <div id="leaflet-map"></div>
+
+          <!-- HUD Superior -->
+          <div class="map-hud-top">
+            <div class="map-tooltip-card">
+              <p class="map-tooltip-title" id="tooltip-title">Avándaro</p>
+              <p class="map-tooltip-desc" id="tooltip-desc">Haga clic en cualquier polígono, calle, pin turístico o propiedad para explorar su entorno.</p>
+            </div>
+          </div>
+
+          <!-- HUD Inferior -->
+          <div class="map-hud-bottom">
+            <div class="map-legend">
+              <span class="legend-item"><span class="legend-dot" style="background: #b84a24;"></span> Cultura / Mirador</span>
+              <span class="legend-item"><span class="legend-dot" style="background: #1d6356;"></span> Naturaleza / Deporte</span>
+              <span class="legend-item"><span class="legend-dot" style="background: #8f6524;"></span> Gastronomía / Plaza</span>
+              <span class="legend-item"><span class="legend-dot" style="background: #261b15; border-radius: 3px;"></span> Propiedad NovaTerra</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="map-footer-note">
+          <span><strong>Cartografía base:</strong> OpenStreetMap / Carto Voyager · Calles, avenidas y puntos georreferenciados reales de Valle de Bravo.</span>
+          <span>Haz clic en un pin para abrir su enlace directo a Google Maps.</span>
+        </div>
+      </section>
+
+      <!-- PANEL DERECHO -->
+      <section class="panel" aria-labelledby="right-panel-title">
+        <div class="panel-header">
+          <div class="panel-kicker">
+            <span>Portafolio NovaTerra Bienes Raíces</span>
+            <span id="right-prop-count" style="color: var(--primary);">0 fichas</span>
+          </div>
+          <h2 class="panel-title" id="right-panel-title">Fichas de Propiedades</h2>
+          <p class="panel-subtitle">Tarjetas editoriales A4 vinculadas a la zona activa.</p>
+        </div>
+
+        <div class="panel-scroll">
+          <div class="prop-filter-row">
+            <span class="op-tab is-active" style="cursor: default;">Propiedades en Venta</span>
+            <span style="font-size: 0.72rem; color: var(--secondary); font-weight: 600;" id="zone-avg-price">Media zonal: —</span>
+          </div>
+          <div id="property-cards-list" style="display: flex; flex-direction: column; gap: var(--space-md);"></div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Visor expandido de Ficha Editorial A4 -->
+    <section class="pdf-sheet-drawer" id="pdf-sheet-drawer" aria-live="polite"></section>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+  <script>
+    // =========================================================================
+    // DATOS GEORREFERENCIADOS PRECISOS (CALLES Y UBICACIONES REALES)
+    // =========================================================================
+    const ZONES = [
+      {
+        id: `centro`,
+        name: `Centro Histórico`,
+        shortLabel: `Centro`,
+        color: `#b84a24`,
+        tagline: `Núcleo colonial, arquitectura vernácula de teja roja, cultura y portales tradicionales.`,
+        avgPrice: `$12,400,000 MXN`,
+        cadastralGap: `+435% ($1,120 vs $6,000/m²)`,
+        profile: `Cultural y Patrimonial`,
+        centerLatLng: [19.1948, -100.1322],
+        attractions: [
+          {
+            id: `poi-plaza`,
+            name: `Plaza Independencia y Parroquia de San Francisco`,
+            category: `Cultura`,
+            badge: `Patrimonio`,
+            desc: `Corazón cívico del Pueblo Mágico. Destaca por sus columnas neoclásicas, campanario colonial y murales contemporáneos.`,
+            latLng: [19.1945, -100.1326], // Jardín Central / Plaza Independencia
+            geo: `Calle Independencia y Av. Juárez`,
+            time: `Núcleo peatonal`
+          },
+          {
+            id: `poi-mercado`,
+            name: `Mercado Municipal de Artesanías`,
+            category: `Cultura`,
+            badge: `Artesanía`,
+            desc: `Encuentro comercial de barro vidriado tradicional, textiles deshilados, cestería de ocoxal y piezas mazahuas.`,
+            latLng: [19.1966, -100.1306], // Calle Bocanegra / Mercado Municipal
+            geo: `Calle Bocanegra y Peñuelas`,
+            time: `4 min a pie`
+          },
+          {
+            id: `poi-pagaza`,
+            name: `Centro Cultural Joaquín Arcadio Pagaza`,
+            category: `Cultura`,
+            badge: `Museo`,
+            desc: `Casa natal del poeta y obispo vallesano. Alberga exposiciones de artes plásticas y acervos literarios.`,
+            latLng: [19.1931, -100.1338], // Calle J. Arcadio Pagaza
+            geo: `Calle Joaquín Arcadio Pagaza`,
+            time: `3 min a pie`
+          },
+          {
+            id: `poi-arqueo`,
+            name: `Museo Arqueológico de Valle de Bravo`,
+            category: `Cultura`,
+            badge: `Historia`,
+            desc: `Exhibición de cerámica y piezas prehispánicas de las culturas otomí, mazahua y matlatzinca.`,
+            latLng: [19.1961, -100.1355], // Calle 16 de Septiembre
+            geo: `Calle 16 de Septiembre`,
+            time: `5 min a pie`
+          },
+          {
+            id: `poi-cruz`,
+            name: `Mirador Cruz de Misión`,
+            category: `Naturaleza`,
+            badge: `Mirador`,
+            desc: `Punto elevado en el Barrio de la Cruz con vista panorámica hacia los tejados coloniales y el embalse.`,
+            latLng: [19.1984, -100.1282], // Barrio de la Cruz
+            geo: `Calle de la Cruz`,
+            time: `7 min a pie`
+          }
+        ],
+        gastronomy: [`La Batucada`, `El Soleado`, `ChoKLAT`, `Dipao Centro`, `Los Vergelitos`, `Café Cacao`, `El Punto`],
+        services: [`BBVA, Banamex y HSBC`, `Farmacias del Ahorro`, `Notarías y oficinas públicas`]
+      },
+      {
+        id: `lapena`,
+        name: `La Peña`,
+        shortLabel: `La Peña`,
+        color: `#7d3c68`,
+        tagline: `Monolito milenario, vistas de 360° al embalse, marinas privadas y residencias de ultra lujo.`,
+        avgPrice: `$24,040,000 MXN`,
+        cadastralGap: `Mayor plusvalía panorámica`,
+        profile: `Contemplativo & Náutico Exclusivo`,
+        centerLatLng: [19.1968, -100.1455],
+        attractions: [
+          {
+            id: `poi-mirador-pena`,
+            name: `Mirador Natural La Peña`,
+            category: `Naturaleza`,
+            badge: `110 M años`,
+            desc: `Formación rocosa icónica en la península norte con senderos hasta la cumbre y vistas de 360° sobre la presa.`,
+            latLng: [19.1972, -100.1462], // Cumbre de La Peña (tierra firme)
+            geo: `Rinconada de La Peña`,
+            time: `8 min ascenso`
+          },
+          {
+            id: `poi-club-vela`,
+            name: `Club de Vela y Deportes Náuticos`,
+            category: `Deporte`,
+            badge: `Náutico`,
+            desc: `Clubes privados en la ribera norte orientados a regatas de velero, windsurf y convivencia social.`,
+            latLng: [19.1976, -100.1422], // Orilla norte / Prol. Zaragoza (en tierra)
+            geo: `Prolongación Ignacio Zaragoza`,
+            time: `4 min en auto`
+          }
+        ],
+        gastronomy: [`La Peñita`, `El Edén de Abu`, `Los Veleros`, `La Huastequita`],
+        services: [`Hospital General e IMSS 233`, `Clínica ISSEMyM`, `Supermercado Soriana`]
+      },
+      {
+        id: `sanantonio`,
+        name: `San Antonio`,
+        shortLabel: `San Antonio`,
+        color: `#3b6b8c`,
+        tagline: `Conectividad poniente, servicios médicos estratégicos, acceso a marinas y ribera tranquila.`,
+        avgPrice: `$12,780,000 MXN`,
+        cadastralGap: `Alta conectividad urbana`,
+        profile: `Residencial Funcional & Familiar`,
+        centerLatLng: [19.2052, -100.1355],
+        attractions: [
+          {
+            id: `poi-capilla-sanantonio`,
+            name: `Barrio y Capilla de San Antonio`,
+            category: `Cultura`,
+            badge: `Tradicional`,
+            desc: `Asentamiento residencial con callejones empedrados y proximidad al corredor comercial del acceso norte.`,
+            latLng: [19.2048, -100.1372], // Calle San Pablo / San Antonio
+            geo: `Calle San Pablo`,
+            time: `5 min al Centro`
+          },
+          {
+            id: `poi-otumba`,
+            name: `Talleres de Alfarería · Barrio de Otumba`,
+            category: `Cultura`,
+            badge: `Oficio vivo`,
+            desc: `Hornos tradicionales de barro vidriado que preservan el legado artesanal del valle.`,
+            latLng: [19.2055, -100.1288], // Calle Alfareros / Barrio Otumba
+            geo: `Calle Alfareros`,
+            time: `4 min en auto`
+          }
+        ],
+        gastronomy: [`Los Veleros`, `El Edén de Abu`, `El Rincón Alfarero`, `Marisquería El Costeño`],
+        services: [`Hospital General e IMSS 233`, `Soriana Valle de Bravo`, `Gasolinera PEMEX Entrada`]
+      },
+      {
+        id: `santamaria`,
+        name: `Santa María Ahuacatlán`,
+        shortLabel: `Sta. María`,
+        color: `#b5893e`,
+        tagline: `Barrio fundacional ribereño, sede de NovaTerra, Cristo Negro, muelle municipal y aterrizaje de parapente.`,
+        avgPrice: `$13,120,000 MXN`,
+        cadastralGap: `Corredor lacustre y comercial`,
+        profile: `Activo, Lacustre & Tradicional`,
+        centerLatLng: [19.1872, -100.1325],
+        attractions: [
+          {
+            id: `poi-cristo-negro`,
+            name: `Templo del Cristo Negro y Ahuehuete`,
+            category: `Cultura`,
+            badge: `Santuario`,
+            desc: `Santuario venerado en uno de los barrios fundacionales más antiguos, flanqueado por un ahuehuete monumental.`,
+            latLng: [19.1879, -100.1312], // Santuario del Cristo Negro en Santa María
+            geo: `Calzada Santa María Ahuacatlán`,
+            time: `3 min a pie`
+          },
+          {
+            id: `poi-embarcadero`,
+            name: `Embarcadero Municipal y Malecón`,
+            category: `Deporte`,
+            badge: `Lacustre`,
+            desc: `Muelle turístico para paseos en lancha, canotaje, paddleboard y restaurantes flotantes (Los Pericos).`,
+            latLng: [19.1916, -100.1356], // Paseo del Malecón / Fray Gregorio Jiménez
+            geo: `Calzada del Muelle / Fray Gregorio Jiménez`,
+            time: `2 min a pie`
+          },
+          {
+            id: `poi-parapente`,
+            name: `Aterrizaje de Parapente y Plaza Valle`,
+            category: `Deporte`,
+            badge: `Vuelo libre`,
+            desc: `Explanada lacustre donde descienden los pilotos que despegan desde Monte Alto.`,
+            latLng: [19.1846, -100.1312], // Campo de aterrizaje sobre Calzada de la Laguna (tierra firme)
+            geo: `Calzada de la Laguna`,
+            time: `4 min a pie`
+          },
+          {
+            id: `poi-novaterra-sede`,
+            name: `Oficina Central NovaTerra Bienes Raíces`,
+            category: `Cultura`,
+            badge: `Sede`,
+            desc: `Domicilio operativo y consultoría patrimonial con más de 33 años de trayectoria (Calle 5 de Mayo No. 99).`,
+            latLng: [19.1892, -100.1318], // Calle 5 de Mayo No. 99
+            geo: `Calle 5 de Mayo No. 99`,
+            time: `Punto de partida`
+          }
+        ],
+        gastronomy: [`La Piola`, `Trattoria Da Giancarlo`, `Los Pericos (Flotante)`, `Bar Mestizo`, `Yamura Sushi`, `Restaurante Coma`],
+        services: [`Farmacia San José`, `Sitio Taxis Estrella`, `Banco del Bienestar`, `Módulos de Protección Civil`]
+      },
+      {
+        id: `avandaro`,
+        name: `Avándaro`,
+        shortLabel: `Avándaro`,
+        color: `#1d6356`,
+        tagline: `Villas en bosque de pino-encino, clubes de golf e hípicos, cascada Velo de Novia y corredor Plaza Andaro.`,
+        avgPrice: `$14,260,000 MXN`,
+        cadastralGap: `+1,233% ($1,200 vs $16,000/m²)`,
+        profile: `Bienestar, Golf & Alta Socialización`,
+        centerLatLng: [19.1695, -100.1310],
+        attractions: [
+          {
+            id: `poi-velo`,
+            name: `Parque Natural Cascada Velo de Novia`,
+            category: `Naturaleza`,
+            badge: `35 m caída`,
+            desc: `Caída de agua alimentada por el arroyo San Juan entre oyameles y pinos; senderismo y miradores panorámicos.`,
+            latLng: [19.1725, -100.1352], // Reserva Velo de Novia en tierra firme
+            geo: `Camino a Velo de Novia / Avándaro`,
+            time: `5 min en auto`
+          },
+          {
+            id: `poi-golf`,
+            name: `Club de Golf Avándaro e Hípico`,
+            category: `Deporte`,
+            badge: `Alto standing`,
+            desc: `Campo de golf entre vegas arboladas, canchas de pádel, tenis, spa y clubes ecuestres.`,
+            latLng: [19.1705, -100.1318], // Club de Golf Avándaro / Vega del Río
+            geo: `Vega del Río / Fontana`,
+            time: `3 min en auto`
+          },
+          {
+            id: `poi-marinas`,
+            name: `Marinas Nautilus y Los Barriales`,
+            category: `Deporte`,
+            badge: `Vela & SUP`,
+            desc: `Acceso náutico de bajo impacto acústico en la ensenada sur para kayak, velero y paddleboard.`,
+            latLng: [19.1765, -100.1385], // Ribera de tierra firme al sur de Barrio San Lorenzo
+            geo: `Ribera Sur / Camino a Avándaro`,
+            time: `6 min en auto`
+          },
+          {
+            id: `poi-rosales`,
+            name: `Corredor Plaza Andaro y Av. Rosales`,
+            category: `Gastronomía`,
+            badge: `Vida social`,
+            desc: `Epicentro comercial y gastronómico de Avándaro con terrazas, cafeterías de especialidad y tiendas orgánicas.`,
+            latLng: [19.1658, -100.1282], // Av. Rosales / Centro comercial Avándaro
+            geo: `Av. Rosales y Av. del Carmen`,
+            time: `Núcleo peatonal`
+          }
+        ],
+        gastronomy: [`Dipao Avándaro`, `Soul Avándaro`, `Degustando (Plaza Andaro)`, `Fisher's House`, `VE Cocina Española`, `Bendito Chilaquil`],
+        services: [`Supermercado Fresko Avándaro`, `Banamex, BBVA y Banca Mifel`, `Cruz Roja Avándaro`, `Farmacias San Pablo`]
+      },
+      {
+        id: `montealto`,
+        name: `Monte Alto`,
+        shortLabel: `Monte Alto`,
+        color: `#435c47`,
+        tagline: `Reserva ecológica sobre cono volcánico, despegue mundial de parapente y 20+ km de senderos MTB.`,
+        avgPrice: `$11,310,000 MXN`,
+        cadastralGap: `Reserva forestal protegida`,
+        profile: `Aventura Boscosa & Biofilia`,
+        centerLatLng: [19.1845, -100.1145],
+        attractions: [
+          {
+            id: `poi-parque-montealto`,
+            name: `Parque Estatal Monte Alto (Despegue Parapente)`,
+            category: `Deporte`,
+            badge: `Copa Mundial`,
+            desc: `Área natural protegida sobre cono volcánico; sede de copas mundiales de vuelo libre en parapente y ala delta.`,
+            latLng: [19.1835, -100.1165], // Zona de despegue Monte Alto
+            geo: `Carretera a Monte Alto`,
+            time: `10 min desde centro`
+          },
+          {
+            id: `poi-mtb`,
+            name: `Circuitos MTB Cross-Country y Downhill`,
+            category: `Deporte`,
+            badge: `20+ km`,
+            desc: `Red de senderos balizados entre bosque de pino-encino para ciclismo de montaña y trail running.`,
+            latLng: [19.1812, -100.1095], // Senderos internos reserva Monte Alto
+            geo: `Reserva Monte Alto`,
+            time: `Acceso directo`
+          },
+          {
+            id: `poi-maranatha`,
+            name: `Centro de Espiritualidad Carmel Maranathá`,
+            category: `Cultura`,
+            badge: `Retiro`,
+            desc: `Casa de oración carmelita célebre por su arquitectura de silencio, fuentes y jardines de contemplación.`,
+            latLng: [19.1905, -100.1185], // Ladera norte hacia Av. Toluca / Monte Alto
+            geo: `Ladera Norte Monte Alto`,
+            time: `7 min en auto`
+          }
+        ],
+        gastronomy: [`Cafés con mirador de bosque`, `Merenderos para ciclistas`, `Trucheros de montaña`],
+        services: [`Módulos de guardabosques ANP`, `Talleres y soporte para ciclismo`, `Ferreterías locales`]
+      },
+      {
+        id: `acatitlan`,
+        name: `Acatitlán`,
+        shortLabel: `Acatitlán`,
+        color: `#6c7a38`,
+        tagline: `Refugio espiritual en la montaña, Gran Stupa Bön, cervecería artesanal y ruta a santuario Monarca.`,
+        avgPrice: `$13,670,000 MXN`,
+        cadastralGap: `Baja densidad / Ranchos campestres`,
+        profile: `Contemplativo, Espiritual & Campestre`,
+        centerLatLng: [19.1625, -100.1085],
+        attractions: [
+          {
+            id: `poi-stupa`,
+            name: `Gran Stupa Bön para la Paz Mundial`,
+            category: `Cultura`,
+            badge: `34 m altura`,
+            desc: `Monumento budista Bön más grande de Occidente en Los Álamos. Espacio de silencio, meditación y retiros.`,
+            latLng: [19.1585, -100.0975], // Los Álamos / Acatitlán
+            geo: `Los Álamos / Acatitlán`,
+            time: `14 min desde Avándaro`
+          },
+          {
+            id: `poi-cerveceria`,
+            name: `Cervecería Artesanal Acatitlán`,
+            category: `Gastronomía`,
+            badge: `Manantial`,
+            desc: `Fábrica boutique que elabora cerveza artesanal con agua pura de manantiales de montaña.`,
+            latLng: [19.1665, -100.1145], // Camino a Acatitlán
+            geo: `Carretera Valle–Avándaro / Acatitlán`,
+            time: `6 min en auto`
+          }
+        ],
+        gastronomy: [`Cervecería Artesanal Acatitlán`, `Trucheros tradicionales de manantial`, `Restaurantes campestres`],
+        services: [`Gasolinera y comercios carreteros`, `Proveeduría agroecológica local`, `Acceso a Rancho Avándaro`]
+      }
+    ];
+
+    // =========================================================================
+    // POLÍGONOS ORGÁNICOS DELIMITADOS EXACTAMENTE EN TIERRA FIRME Y CALLES
+    // =========================================================================
+    const ORGANIC_ZONES_COORDS = {
+      // Península de La Peña (ajustada estrictamente al macizo rocoso)
+      lapena: [
+        [19.2015, -100.1495], [19.2020, -100.1430], [19.1985, -100.1398],
+        [19.1955, -100.1412], [19.1962, -100.1475], [19.1982, -100.1505]
+      ],
+      // San Antonio y Barrio de Otumba
+      sanantonio: [
+        [19.2102, -100.1425], [19.2108, -100.1285], [19.2055, -100.1255],
+        [19.2002, -100.1275], [19.1996, -100.1382], [19.2035, -100.1432]
+      ],
+      // Centro Histórico
+      centro: [
+        [19.1992, -100.1372], [19.1994, -100.1275], [19.1955, -100.1258],
+        [19.1912, -100.1275], [19.1910, -100.1358], [19.1945, -100.1375]
+      ],
+      // Santa María Ahuacatlán (borde oeste alineado a la orilla real)
+      santamaria: [
+        [19.1908, -100.1355], [19.1905, -100.1265], [19.1852, -100.1255],
+        [19.1815, -100.1280], [19.1822, -100.1322], [19.1865, -100.1342]
+      ],
+      // Avándaro (cuenca boscosa sur en tierra firme)
+      avandaro: [
+        [19.1778, -100.1395], [19.1782, -100.1245], [19.1705, -100.1205],
+        [19.1615, -100.1235], [19.1615, -100.1362], [19.1705, -100.1408]
+      ],
+      // Monte Alto
+      montealto: [
+        [19.1945, -100.1245], [19.1935, -100.1065], [19.1835, -100.1035],
+        [19.1765, -100.1085], [19.1778, -100.1235], [19.1865, -100.1250]
+      ],
+      // Acatitlán
+      acatitlan: [
+        [19.1755, -100.1195], [19.1735, -100.0945], [19.1585, -100.0915],
+        [19.1515, -100.1015], [19.1545, -100.1185], [19.1655, -100.1210]
+      ]
+    };
+
+    const DRIVE_API_URL = `https://script.google.com/macros/s/AKfycbykfb2nsMAE4jeXxXWr9-r9bBr9uyAcFRnk-BmJcHAtIL5FNkwCGD2PbejQhgP4vv0/exec`;
+
+    let PROPERTIES = [];
+
+    async function loadPropertiesFromDrive() {
+      const listEl = document.getElementById(`property-cards-list`);
+      if (listEl) {
+        listEl.innerHTML = `<div class="gastro-box" style="text-align:center;">Sincronizando fichas PDF desde Google Drive...</div>`;
+      }
+
+      try {
+        const response = await fetch(DRIVE_API_URL);
+        const data = await response.json();
+        if (Array.isArray(data)) {
+          PROPERTIES = data;
+          renderRightPanel();
+        }
+      } catch (error) {
+        console.error(`Error cargando PDFs de Drive:`, error);
+        if (listEl) {
+          listEl.innerHTML = `<div class="gastro-box" style="text-align:center;color:var(--primary);">No se pudo conectar con Google Drive. Verifica los permisos del script.</div>`;
+        }
+      }
+    }
+
+    // =========================================================================
+    // ESTADO Y CAPAS LEAFLET (SOLO ZONAS Y PUNTOS DE INTERÉS, SIN PROPIEDADES)
+    // =========================================================================
+    let activeZoneId = `avandaro`;
+    let activePoiId = null;
+    let selectedPropId = null;
+    let activeCategory = `Todas`;
+    let activeOperation = `all`;
+    let layers = { poi: true, radius: true };
+    let isMapExpanded = false;
+
+    let map;
+    let tileLayers = {};
+    let currentTileLayer;
+    let zonePolygonsLayer;
+    let radiusGroupLayer;
+    let poiGroupLayer;
+
+    function initLeafletMap() {
+      map = L.map(`leaflet-map`, {
+        center: [19.1845, -100.1285],
+        zoom: 14,
+        zoomControl: true
+      });
+
+      tileLayers.streets = L.tileLayer(`https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}`, {
+        attribution: `Tiles &copy; Esri &mdash; OpenStreetMap contributors`,
+        maxZoom: 19
+      });
+
+      tileLayers.osm = L.tileLayer(`https://tile.openstreetmap.org/{z}/{x}/{y}.png`, {
+        attribution: `&copy; OpenStreetMap contributors`,
+        maxZoom: 19
+      });
+
+      tileLayers.satellite = L.tileLayer(`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}`, {
+        attribution: `Tiles &copy; Esri`,
+        maxZoom: 18
+      });
+
+      currentTileLayer = tileLayers.streets.addTo(map);
+
+      zonePolygonsLayer = L.layerGroup().addTo(map);
+      radiusGroupLayer = L.layerGroup().addTo(map);
+      poiGroupLayer = L.layerGroup().addTo(map);
+    }
+
+    function setMapBasemap(styleKey) {
+      if (!map || !tileLayers[styleKey]) return;
+      map.removeLayer(currentTileLayer);
+      currentTileLayer = tileLayers[styleKey].addTo(map);
+
+      [`streets`, `osm`, `sat`].forEach(k => {
+        const btn = document.getElementById(`style-${k}`);
+        if (btn) btn.classList.remove(`is-active`);
+      });
+      const activeId = styleKey === `satellite` ? `style-sat` : `style-${styleKey}`;
+      const activeBtn = document.getElementById(activeId);
+      if (activeBtn) activeBtn.classList.add(`is-active`);
+    }
+
+    function toggleExpandMap() {
+      isMapExpanded = !isMapExpanded;
+      const grid = document.getElementById(`workspace-grid`);
+      const lbl = document.getElementById(`expand-map-label`);
+      const icon = document.querySelector(`#btn-expand-map i`);
+      if (grid) grid.classList.toggle(`is-map-expanded`, isMapExpanded);
+      if (lbl) lbl.textContent = isMapExpanded ? `Vista 3 columnas` : `Ampliar mapa`;
+      if (icon) icon.className = isMapExpanded ? `ph ph-arrows-in` : `ph ph-arrows-out`;
+      setTimeout(() => { if (map) map.invalidateSize(); }, 280);
+    }
+
+    function fitAllZones() {
+      if (!map) return;
+      map.flyTo([19.1845, -100.1285], 13, { duration: 0.8 });
+    }
+
+    function createSmoothBlob(points, subdivisions = 16) {
+      const smooth = [];
+      const len = points.length;
+      for (let i = 0; i < len; i++) {
+        const p0 = points[(i - 1 + len) % len];
+        const p1 = points[i];
+        const p2 = points[(i + 1) % len];
+        const p3 = points[(i + 2) % len];
+
+        for (let step = 0; step < subdivisions; step++) {
+          const t = step / subdivisions;
+          const t2 = t * t;
+          const t3 = t2 * t;
+
+          const lat = 0.5 * (
+            (2 * p1[0]) +
+            (-p0[0] + p2[0]) * t +
+            (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t2 +
+            (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t3
+          );
+          const lng = 0.5 * (
+            (2 * p1[1]) +
+            (-p0[1] + p2[1]) * t +
+            (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2 +
+            (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t3
+          );
+          smooth.push([lat, lng]);
+        }
+      }
+      return smooth;
+    }
+
+    function renderMapPolygons() {
+      if (!zonePolygonsLayer) return;
+      zonePolygonsLayer.clearLayers();
+
+      ZONES.forEach(z => {
+        const isActive = z.id === activeZoneId;
+        const rawPoints = ORGANIC_ZONES_COORDS[z.id];
+        if (!rawPoints) return;
+        const blobCoords = createSmoothBlob(rawPoints, 16);
+
+        const blob = L.polygon(blobCoords, {
+          stroke: isActive,
+          color: z.color,
+          weight: isActive ? 2.2 : 0,
+          dashArray: isActive ? `5, 6` : null,
+          fillColor: z.color,
+          fillOpacity: isActive ? 0.30 : 0.16,
+          className: `watercolor-blob`
+        });
+
+        blob.on(`click`, () => selectZone(z.id, true));
+        blob.addTo(zonePolygonsLayer);
+
+        const labelIcon = L.divIcon({
+          className: ``,
+          html: `<div class="zone-label-div" style="border-color: ${z.color}; color: ${isActive ? z.color : `#261b15`};">${z.shortLabel}</div>`,
+          iconSize: [96, 22],
+          iconAnchor: [48, 11]
+        });
+        L.marker(z.centerLatLng, { icon: labelIcon, interactive: false }).addTo(zonePolygonsLayer);
+      });
+    }
+
+    function renderRadiusCircle() {
+      if (!radiusGroupLayer) return;
+      radiusGroupLayer.clearLayers();
+      if (!layers.radius) return;
+
+      const z = ZONES.find(item => item.id === activeZoneId);
+      if (!z) return;
+
+      L.circle(z.centerLatLng, {
+        radius: 1500,
+        color: z.color,
+        weight: 1.8,
+        dashArray: `6, 6`,
+        fillColor: z.color,
+        fillOpacity: 0.04,
+        interactive: false
+      }).addTo(radiusGroupLayer);
+    }
+
+    function getPoiCategoryColor(cat) {
+      if (cat === `Naturaleza` || cat === `Deporte`) return `#1d6356`;
+      if (cat === `Gastronomía`) return `#8f6524`;
+      return `#b84a24`;
+    }
+
+    function getPoiCategoryIcon(cat) {
+      if (cat === `Naturaleza`) return `ph-tree`;
+      if (cat === `Deporte`) return `ph-compass`;
+      if (cat === `Gastronomía`) return `ph-fork-knife`;
+      return `ph-bank`;
+    }
+
+    function renderMapMarkers() {
+      if (!poiGroupLayer) return;
+      poiGroupLayer.clearLayers();
+      if (!layers.poi) return;
+
+      ZONES.forEach(z => {
+        z.attractions.forEach(poi => {
+          const isHighlighted = poi.id === activePoiId;
+          const color = getPoiCategoryColor(poi.category);
+          const iconClass = getPoiCategoryIcon(poi.category);
+
+          const markerHtml = `
+            <div class="gmaps-pin ${isHighlighted ? `is-active` : ``}" style="background: ${color};">
+              <i class="ph-fill ${iconClass}"></i>
+            </div>
+          `;
+          const divIcon = L.divIcon({
+            className: ``,
+            html: markerHtml,
+            iconSize: [26, 26],
+            iconAnchor: [13, 26],
+            popupAnchor: [0, -24]
+          });
+
+          const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${poi.latLng[0]},${poi.latLng[1]}`;
+          const marker = L.marker(poi.latLng, { icon: divIcon });
+          marker.bindPopup(`
+            <div style="font-family: 'Plus Jakarta Sans', sans-serif; max-width: 240px;">
+              <strong style="font-size: 0.9rem; color: #261b15;">${poi.name}</strong><br>
+              <span style="font-size: 0.72rem; color: #8f6524; font-weight: 700;">${poi.geo}</span><br>
+              <span style="font-size: 0.75rem; color: #57483f;">${poi.desc}</span><br>
+              <a href="${gmapsUrl}" target="_blank" rel="noopener" style="display:inline-block; margin-top:6px; font-size:0.75rem; font-weight:700; color:#b84a24; text-decoration:none;">
+                Abrir en Google Maps ↗
+              </a>
+            </div>
+          `);
+          marker.on(`click`, () => clickPoi(z.id, poi.id, false));
+          marker.addTo(poiGroupLayer);
+        });
+      });
+    }
+
+    // =========================================================================
+    // PANELES LATERALES (IZQUIERDO: TURISMO | DERECHO: PROPIEDADES PRIVADAS)
+    // =========================================================================
+    function buildPropertyIllustration(prop) {
+      const [bg, accent, secondary] = prop.palette;
+      return `
+        <svg class="pdf-photo-svg" viewBox="0 0 360 160" aria-hidden="true">
+          <rect width="360" height="160" fill="${bg}" />
+          <rect x="0" y="124" width="360" height="36" fill="#435c47" fill-opacity="0.18" />
+          <rect x="74" y="56" width="212" height="68" fill="#fdfaf5" stroke="${accent}" stroke-width="1.8" />
+          <polygon points="62,56 180,26 298,56" fill="${accent}" />
+          <rect x="104" y="74" width="44" height="32" fill="#c7dde5" stroke="${secondary}" stroke-width="1.2" />
+          <rect x="162" y="74" width="36" height="50" fill="${secondary}" />
+          <rect x="212" y="74" width="44" height="32" fill="#c7dde5" stroke="${secondary}" stroke-width="1.2" />
+        </svg>
+      `;
+    }
+
+    function renderZonePills() {
+      const container = document.getElementById(`zone-pills`);
+      if (!container) return;
+      container.innerHTML = ZONES.map(z => `
+        <button type="button" class="zone-pill ${z.id === activeZoneId ? `is-active` : ``}" onclick="selectZone('${z.id}', true)">
+          <span class="zone-swatch" style="background: ${z.color};"></span>
+          <span>${z.name}</span>
+        </button>
+      `).join(``);
+    }
+
+    function renderLeftPanel() {
+      const z = ZONES.find(item => item.id === activeZoneId);
+      if (!z) return;
+
+      document.getElementById(`left-panel-title`).textContent = z.name;
+      document.getElementById(`left-zone-kicker`).textContent = `Perfil: ${z.profile}`;
+      const badgeEl = document.getElementById(`left-zone-badge`);
+      badgeEl.textContent = `${z.attractions.length} atracciones`;
+      badgeEl.style.color = z.color;
+      document.getElementById(`left-zone-tagline`).textContent = z.tagline;
+
+      const categories = [`Todas`, `Cultura`, `Naturaleza`, `Deporte`, `Gastronomía`];
+      const filteredAttractions = activeCategory === `Todas`
+        ? z.attractions
+        : z.attractions.filter(a => a.category === activeCategory);
+
+      document.getElementById(`left-panel-body`).innerHTML = `
+        <div class="zone-meta-bar">
+          <div class="meta-chip">
+            <span class="meta-chip-label">Precio Medio Zonal</span>
+            <span class="meta-chip-value">${z.avgPrice}</span>
+          </div>
+          <div class="meta-chip">
+            <span class="meta-chip-label">Referencia Territorial</span>
+            <span class="meta-chip-value">${z.cadastralGap}</span>
+          </div>
+        </div>
+
+        <div class="category-filter-row">
+          ${categories.map(cat => `
+            <button type="button" class="cat-btn ${activeCategory === cat ? `is-active` : ``}" onclick="setCategoryFilter('${cat}')">${cat}</button>
+          `).join(``)}
+        </div>
+
+        <div class="attraction-group">
+          <h3 class="group-heading"><i class="ph ph-compass"></i><span>Atracciones y Sitios</span></h3>
+          ${filteredAttractions.map(poi => `
+            <button type="button" class="poi-card ${poi.id === activePoiId ? `is-highlighted` : ``}" onclick="clickPoi('${z.id}', '${poi.id}', true)">
+              <div class="poi-head">
+                <h4 class="poi-title">${poi.name}</h4>
+                <span class="poi-badge">${poi.badge}</span>
+              </div>
+              <p class="poi-desc">${poi.desc}</p>
+              <div class="poi-meta">
+                <span><i class="ph ph-tag"></i> ${poi.category}</span>
+                <span><i class="ph ph-map-pin"></i> ${poi.geo}</span>
+              </div>
+            </button>
+          `).join(``)}
+        </div>
+
+        <div class="gastro-box">
+          <h3 class="group-heading" style="border:none;padding:0;"><i class="ph ph-fork-knife"></i><span>Gastronomía</span></h3>
+          <div class="gastro-tags">${z.gastronomy.map(g => `<span class="gastro-tag">${g}</span>`).join(``)}</div>
+        </div>
+
+        <div class="gastro-box">
+          <h3 class="group-heading" style="border:none;padding:0;color:var(--tertiary);"><i class="ph ph-first-aid-kit"></i><span>Servicios (Radio 2 km)</span></h3>
+          <div class="gastro-tags">${z.services.map(s => `<span class="gastro-tag is-service">${s}</span>`).join(``)}</div>
+        </div>
+      `;
+    }
+
+    function renderRightPanel() {
+      const z = ZONES.find(item => item.id === activeZoneId);
+      if (!z) return;
+
+      const filtered = PROPERTIES.filter(p => p.zoneId === activeZoneId && p.operation === `Venta`);
+
+      document.getElementById(`right-prop-count`).textContent = `${filtered.length} ${filtered.length === 1 ? `ficha` : `fichas`}`;
+      document.getElementById(`right-panel-title`).textContent = `Propiedades en ${z.shortLabel}`;
+      document.getElementById(`zone-avg-price`).textContent = `Media: ${z.avgPrice}`;
+
+      const listEl = document.getElementById(`property-cards-list`);
+      if (filtered.length === 0) {
+        listEl.innerHTML = `<div class="gastro-box" style="text-align:center;">Aún no hay fichas PDF en la carpeta <strong>${z.shortLabel}</strong> de Google Drive.</div>`;
+        return;
+      }
+
+      listEl.innerHTML = filtered.map(prop => `
+        <article class="pdf-card ${prop.id === selectedPropId ? `is-selected` : ``}">
+          <div class="pdf-masthead">
+            <span>NovaTerra · Ficha A4</span>
+            <span class="pdf-doc-tag">${prop.id} · PDF</span>
+          </div>
+          <div class="pdf-photo-frame">
+            <img src="${prop.thumbnailUrl}" alt="${prop.title}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'" />
+            <span class="pdf-op-pill is-venta">En Venta</span>
+            <span class="pdf-price-badge">${prop.price}</span>
+          </div>
+          <div class="pdf-body">
+            <h3 class="pdf-title">${prop.title}</h3>
+            <p class="pdf-address"><i class="ph ph-lock-simple"></i><span>Zona ${z.name} · Ubicación exacta bajo cita</span></p>
+            <div class="pdf-specs-grid">
+              <div><span class="spec-val">${prop.builtSqm}</span><span class="spec-lbl">Const.</span></div>
+              <div><span class="spec-val">${prop.landSqm}</span><span class="spec-lbl">Terreno</span></div>
+              <div><span class="spec-val">${prop.beds}</span><span class="spec-lbl">Rec.</span></div>
+              <div><span class="spec-val">${prop.baths}</span><span class="spec-lbl">Baños</span></div>
+            </div>
+            <p class="pdf-proximity"><strong>Entorno:</strong> ${prop.proximity}</p>
+            <div class="pdf-footer">
+              <span class="pdf-advisor">${prop.advisor}</span>
+              <button type="button" class="pdf-btn" onclick="openPdfDrawer('${prop.id}')">Ver PDF Original</button>
+            </div>
+          </div>
+        </article>
+      `).join(``);
+    }
+
+
+    function openPdfDrawer(propId) {
+      selectedPropId = propId;
+      const prop = PROPERTIES.find(p => p.id === propId);
+      const z = prop ? ZONES.find(item => item.id === prop.zoneId) : null;
+      const drawer = document.getElementById(`pdf-sheet-drawer`);
+      if (!prop || !z || !drawer) return;
+
+      drawer.classList.add(`is-open`);
+      drawer.innerHTML = `
+        <div class="drawer-header">
+          <div>
+            <div class="brand-kicker" style="margin-bottom:2px;">Ficha Técnica Original · Google Drive</div>
+            <h3 class="panel-title" style="font-size:1.55rem;">${prop.title}</h3>
+            <p style="margin:2px 0 0;color:var(--on-surface-variant);font-size:0.88rem;">Microzona <strong>${z.name}</strong> · ${prop.price}</p>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <a href="${prop.pdfViewUrl}" target="_blank" rel="noopener" class="pdf-btn" style="text-decoration:none;display:inline-flex;align-items:center;">
+              Abrir en pantalla completa ↗
+            </a>
+            <button type="button" class="lock-toggle" onclick="closePdfDrawer()">Cerrar</button>
+          </div>
+        </div>
+        <iframe src="${prop.pdfPreviewUrl}" style="width:100%;height:680px;border:1px solid var(--outline-variant);border-radius:var(--rounded);" allow="autoplay"></iframe>
+      `;
+      renderRightPanel();
+      drawer.scrollIntoView({ behavior: `smooth`, block: `nearest` });
+    }
+
+    function closePdfDrawer() {
+      document.getElementById(`pdf-sheet-drawer`).classList.remove(`is-open`);
+      selectedPropId = null;
+      renderRightPanel();
+    }
+
+    // =========================================================================
+    // SINCRONIZACIÓN DE EVENTOS
+    // =========================================================================
+    function syncAllViews() {
+      renderZonePills();
+      renderMapPolygons();
+      renderRadiusCircle();
+      renderMapMarkers();
+      renderLeftPanel();
+      renderRightPanel();
+    }
+
+    function selectZone(zoneId, flyToZone) {
+      activeZoneId = zoneId;
+      activePoiId = null;
+      activeCategory = `Todas`;
+      const z = ZONES.find(item => item.id === zoneId);
+      if (z) {
+        document.getElementById(`tooltip-title`).textContent = `${z.name} · Media ${z.avgPrice}`;
+        document.getElementById(`tooltip-desc`).textContent = z.tagline;
+        if (flyToZone && map) {
+          map.flyTo(z.centerLatLng, 15, { duration: 0.75 });
+        }
+      }
+      syncAllViews();
+    }
+
+    function clickPoi(zoneId, poiId, flyToPoi) {
+      activeZoneId = zoneId;
+      activePoiId = poiId;
+      activeCategory = `Todas`;
+      const z = ZONES.find(item => item.id === zoneId);
+      const poi = z ? z.attractions.find(a => a.id === poiId) : null;
+      if (z && poi) {
+        document.getElementById(`tooltip-title`).textContent = `${poi.name} · ${z.name}`;
+        document.getElementById(`tooltip-desc`).textContent = `${poi.desc} (${poi.geo})`;
+        if (flyToPoi && map) {
+          map.flyTo(poi.latLng, 16, { duration: 0.7 });
+        }
+      }
+      syncAllViews();
+    }
+
+    function setCategoryFilter(cat) {
+      activeCategory = cat;
+      renderLeftPanel();
+    }
+
+    function setOperationFilter(op) {
+      activeOperation = op;
+      [`all`, `venta`, `renta`].forEach(k => {
+        const el = document.getElementById(`op-${k}`);
+        if (!el) return;
+        const match = (k === `all` && op === `all`) || (k === `venta` && op === `Venta`) || (k === `renta` && op === `Renta`);
+        el.classList.toggle(`is-active`, match);
+      });
+      renderRightPanel();
+    }
+
+    function toggleLayer(layerKey) {
+      layers[layerKey] = !layers[layerKey];
+      const btn = document.getElementById(`layer-${layerKey}-btn`);
+      if (btn) btn.classList.toggle(`is-on`, layers[layerKey]);
+      renderRadiusCircle();
+      renderMapMarkers();
+    }
+
+    document.addEventListener(`DOMContentLoaded`, function() {
+      initLeafletMap();
+      selectZone(`avandaro`, false);
+      loadPropertiesFromDrive();
+    });
+
+  </script>
+</body>
+</html>
